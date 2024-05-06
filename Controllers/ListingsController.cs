@@ -38,46 +38,60 @@ namespace Auction.net.Controllers
             return View(await PaginatedList<Listing>.CreateAsync(applicationDbContext.Where(l => l.IsSold == false).AsNoTracking(), pageNumber ?? 1, pageSize));
         }
 
-        //// GET: Listings/Details/5
-        //public async Task<IActionResult> Details(int? id)
-        //{
-        //    if (id == null || _context.Listings == null)
-        //    {
-        //        return NotFound();
-        //    }
+        // GET: Listings/Details/5
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
 
-        //    var listing = await _context.Listings
-        //        .Include(l => l.User)
-        //        .FirstOrDefaultAsync(m => m.Id == id);
-        //    if (listing == null)
-        //    {
-        //        return NotFound();
-        //    }
+            var listing = await _listingsService.GetById(id);
 
-        //    return View(listing);
-        //}
+            if (listing == null)
+            {
+                return NotFound();
+            }
 
-        //// GET: Listings/Create
-        //public IActionResult Create()
-        //{
-        //    ViewData["IdentityUserId"] = new SelectList(_context.Users, "Id", "Id");
-        //    return View();
-        //}
+            return View(listing);
+        }
 
-        //// POST: Listings/Create
-        //[HttpPost]
-        //[ValidateAntiForgeryToken]
-        //public async Task<IActionResult> Create([Bind("Id,Title,Description,Price,ImagePath,IsSold,IdentityUserId")] Listing listing)
-        //{
-        //    if (ModelState.IsValid)
-        //    {
-        //        _context.Add(listing);
-        //        await _context.SaveChangesAsync();
-        //        return RedirectToAction(nameof(Index));
-        //    }
-        //    ViewData["IdentityUserId"] = new SelectList(_context.Users, "Id", "Id", listing.IdentityUserId);
-        //    return View(listing);
-        //}
+        // GET: Listings/Create
+        public IActionResult Create()
+        {
+            return View();
+        }
+
+        // POST: Listings/Create
+        // To protect from overposting attacks, enable the specific properties you want to bind to.
+        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(ListingVM listing)
+        {
+            if (listing.Image != null)
+            {
+                string uploadDir = Path.Combine(_webHostEnvironment.WebRootPath, "Images");
+                string fileName = listing.Image.FileName;
+                string filePath = Path.Combine(uploadDir, fileName);
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    listing.Image.CopyTo(fileStream);
+                }
+
+                var listObj = new Listing
+                {
+                    Title = listing.Title,
+                    Description = listing.Description,
+                    Price = listing.Price,
+                    IdentityUserId = listing.IdentityUserId,
+                    ImagePath = fileName,
+                };
+                await _listingsService.Add(listObj);
+                return RedirectToAction("Index");
+            }
+            return View(listing);
+        }
 
 
     }
